@@ -1,0 +1,51 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon files
+Icon?
+
+# Thumbnails
+._*
+
+# Alfred Workflow build artifacts
+*.alfredworkflow
+
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv/
+.pipenv/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Node modules (if using Node.js)
+node_modules/
+
+# Logs
+*.log
+
+# VSCode settings
+.vscode/
+
+# macOS Trash
+.Trashes
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Test output
+test-results/
