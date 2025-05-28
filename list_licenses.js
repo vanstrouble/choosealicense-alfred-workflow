@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const https = require('https');
+import { request } from 'https';
 
 /**
  * Function to get all licenses
@@ -19,7 +19,7 @@ function getLicenses() {
             }
         };
 
-        const req = https.request(options, (res) => {
+        const req = request(options, (res) => {
             let data = '';
 
             res.on('data', (chunk) => {
