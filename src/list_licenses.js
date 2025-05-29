@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 
-import { request } from 'https';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get current script directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Define path for the licenses file
+const licensesFilePath = path.join(__dirname, 'licenses.json');
 
 const LICENSE_CATEGORIES = {
     'AGPL-3.0': 'Strongest Copyleft License',
@@ -19,45 +29,36 @@ const LICENSE_CATEGORIES = {
 };
 
 /**
- * Function to get all licenses
+ * Function to get all licenses from local JSON file
  * @return {Promise} Promise that resolves to an array of licenses
  */
 function getLicenses() {
     return new Promise((resolve, reject) => {
-        const options = {
-            hostname: 'api.github.com',
-            path: '/licenses',
-            method: 'GET',
-            headers: {
-                'User-Agent': 'Choose-License-Alfred-Workflow',
-                'Accept': 'application/vnd.github+json',
-                'X-GitHub-Api-Version': '2022-11-28'
+        try {
+            // Check if the licenses file exists
+            if (!fs.existsSync(licensesFilePath)) {
+                reject(new Error(`Licenses file not found at ${licensesFilePath}`));
+                return;
             }
-        };
 
-        const req = request(options, (res) => {
-            let data = '';
+            // Read and parse the file
+            const fileData = fs.readFileSync(licensesFilePath, 'utf8');
+            const licensesData = JSON.parse(fileData);
 
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
+            if (!licensesData.licenses || !Array.isArray(licensesData.licenses)) {
+                reject(new Error('Invalid licenses file format'));
+                return;
+            }
 
-            res.on('end', () => {
-                try {
-                    resolve(JSON.parse(data));
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        });
-
-        req.on('error', reject);
-        req.end();
+            resolve(licensesData.licenses);
+        } catch (error) {
+            reject(new Error(`Failed to read licenses file: ${error.message}`));
+        }
     });
 }
 
 /**
- * Creates the response object for Alfred
+ * Creates the response object for Alfred to list licenses
  * @param {Array} licenses - Array of filtered licenses
  * @returns {Object} Alfred response object
  */
@@ -65,18 +66,14 @@ function createAlfredResponse(licenses) {
     return {
         items: licenses.map(license => ({
             title: `${license.name} (${license.spdx_id})`,
-            subtitle: LICENSE_CATEGORIES[license.spdx_id],
+            subtitle: LICENSE_CATEGORIES[license.spdx_id] || 'Software License',
             arg: license.spdx_id,
             icon: { path: "icon.png" },
             mods: {
-                alt: {
-                    subtitle: "⌥: View full license text",
+                cmd: {
+                    subtitle: "⌘: View full license text",
                     arg: `view:${license.spdx_id}`
                 },
-                cmd: {
-                    subtitle: "⌘: Copy license to clipboard",
-                    arg: `copy:${license.spdx_id}`
-                }
             }
         }))
     };
@@ -87,7 +84,8 @@ function createAlfredResponse(licenses) {
  */
 async function run() {
     try {
-        const query = process.argv[2] ? process.argv[2].toLowerCase() : '';
+        const input = process.argv[2] || '';
+        const query = input.toLowerCase();
         const licenses = await getLicenses();
         const filtered = licenses.filter(license =>
             license.name.toLowerCase().includes(query) ||
@@ -99,7 +97,7 @@ async function run() {
         console.error(error);
         const errorResponse = {
             items: [{
-                title: "Error getting licenses",
+                title: "Error processing licenses",
                 subtitle: error.message,
                 icon: { path: "error.png" }
             }]
