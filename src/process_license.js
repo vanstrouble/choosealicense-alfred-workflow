@@ -63,68 +63,48 @@ async function getLicenseById(spdxId) {
 }
 
 /**
- * Format license text for Alfred's Large Type or Copy to Clipboard features
+ * Format license text for Alfred's Text View display
  * @param {Object} license - The license object containing text to format
- * @returns {Object} Alfred text object for JSON response
+ * @returns {string} Formatted license text ready for display
  */
 function formatLicenseText(license) {
-	// Replace placeholders with current year and a default name
-	let licenseText = license.body
-		.replace(/\[year\]/g, new Date().getFullYear())
-		.replace(/\[fullname\]/g, "Your Name");
+    // Create a rich formatted text with metadata
+    return `
+## ${license.name} (${license.spdx_id})
 
-	// Create Alfred Text View JSON structure
-	return {
-		alfredworkflow: {
-			variables: {
-				license_text: licenseText,
-				license_name: license.name,
-				license_id: license.spdx_id,
-			},
-			arg: licenseText,
-			config: {
-				title: `${license.name} (${license.spdx_id})`,
-				text: licenseText,
-			},
-		},
-	};
+### Description
+${license.description || "No description available"}
+
+### Permissions
+${license.permissions ? "✓ " + license.permissions.join("\n✓ ") : "None specified"}
+
+### Conditions
+${license.conditions ? "• " + license.conditions.join("\n• ") : "None specified"}
+
+### Limitations
+${license.limitations ? "⊗ " + license.limitations.join("\n⊗ ") : "None specified"}
+
+---
+
+\`\`\`
+${license.body}
+\`\`\`
+`;
 }
 
-/**
- * Main function that processes the license input
- */
 async function run() {
-	try {
-		const input = process.argv[2] || "";
+    try {
+        const input = process.argv[2] || "";
 
-		// Check if we're viewing a specific license
-		if (input.startsWith("view:")) {
-			const spdxId = input.replace("view:", "");
+        // Extract SPDX ID by removing "view:" prefix
+        const spdxId = input.replace("view:", "");
 
-			// Obtener licencia directamente del archivo local
-			const license = await getLicenseById(spdxId);
-			console.log(JSON.stringify(formatLicenseText(license)));
-		} else {
-			// If not viewing license text, return the plain SPDX ID
-			console.log(input);
-		}
-	} catch (error) {
-		console.error(error);
-		const errorResponse = {
-			alfredworkflow: {
-				variables: {
-					error: error.message,
-				},
-				arg: `Error: ${error.message}`,
-				config: {
-					title: "Error processing license",
-					text: `An error occurred: ${error.message}`,
-				},
-			},
-		};
-		console.log(JSON.stringify(errorResponse));
-	}
+        // Get license and display formatted text
+        const license = await getLicenseById(spdxId);
+        console.log(formatLicenseText(license));
+    } catch (error) {
+        console.error(`Error: ${error.message}`);
+    }
 }
-
 // Run
 run();
