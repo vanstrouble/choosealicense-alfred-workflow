@@ -64,18 +64,28 @@ function getLicenses() {
  */
 function createAlfredResponse(licenses) {
     return {
-        items: licenses.map(license => ({
-            title: `${license.name} (${license.spdx_id})`,
-            subtitle: LICENSE_CATEGORIES[license.spdx_id] || 'Software License',
-            arg: license.spdx_id,
-            icon: { path: "icon.png" },
-            mods: {
-                cmd: {
-                    subtitle: "⌘: View full license text",
-                    arg: `view:${license.spdx_id}`
+        items: licenses.map(license => {
+            const spdxId = license.spdx_id;
+
+            return {
+                title: `${license.name} (${spdxId})`,
+                subtitle: LICENSE_CATEGORIES[spdxId] || 'Software License',
+                arg: spdxId,
+                variables: {
+                    key_license: spdxId
                 },
-            }
-        }))
+                icon: { path: "icon.png" },
+                mods: {
+                    cmd: {
+                        subtitle: "⌘: View full license text",
+                        arg: `view:${spdxId}`,
+                        variables: {
+                            key_license: spdxId  // Mantiene el valor puro sin 'view:'
+                        }
+                    }
+                }
+            };
+        })
     };
 }
 
@@ -95,14 +105,6 @@ async function run() {
         console.log(JSON.stringify(createAlfredResponse(filtered)));
     } catch (error) {
         console.error(error);
-        const errorResponse = {
-            items: [{
-                title: "Error processing licenses",
-                subtitle: error.message,
-                icon: { path: "error.png" }
-            }]
-        };
-        console.log(JSON.stringify(errorResponse));
     }
 }
 
