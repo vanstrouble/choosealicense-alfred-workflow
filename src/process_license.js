@@ -63,14 +63,13 @@ async function getLicenseById(spdxId) {
 }
 
 /**
- * Format license text for Alfred's Text View display
+ * Format license text for Alfred's Text View display using JSON format
  * @param {Object} license - The license object containing text to format
- * @returns {string} Formatted license text ready for display
+ * @returns {string} JSON formatted license data ready for Alfred Text View
  */
 function formatLicenseText(license) {
-    // Create a rich formatted text with metadata
-    return `
-## ${license.name} (${license.spdx_id})
+    // Format the license content for the response field
+    const content = `## ${license.name} (${license.spdx_id})
 
 ### Description
 ${license.description || "No description available"}
@@ -88,8 +87,13 @@ ${license.limitations ? "⊗ " + license.limitations.join("\n⊗ ") : "None spec
 
 \`\`\`
 ${license.body}
-\`\`\`
-`;
+\`\`\``;
+
+    // Create and return Alfred Text View JSON structure (matching Alfred's format)
+    return JSON.stringify({
+        response: content,
+        footer: "Press ⌘↩ to copy license text • Esc to close",
+    });
 }
 
 async function run() {
