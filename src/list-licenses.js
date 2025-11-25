@@ -5,24 +5,6 @@ const GITHUB_API_URL = "https://api.github.com/licenses";
 const CACHE_EXPIRY = 86400; // 24 hours - licenses don't change frequently
 const CURL_TIMEOUT = 5;
 
-// Categorization based on license strength
-const LICENSE_CATEGORIES = {
-	"AGPL-3.0": "Strongest Copyleft License",
-	"GPL-3.0": "Strong Copyleft License",
-	"GPL-2.0": "Strong Copyleft License",
-	"LGPL-3.0": "Weak Copyleft License",
-	"LGPL-2.1": "Weak Copyleft License",
-	"MPL-2.0": "Weak Copyleft License",
-	"Apache-2.0": "Permissive License",
-	"MIT": "Short and Simple Permissive License",
-	"BSD-2-Clause": "Simple Permissive License",
-	"BSD-3-Clause": "Permissive License",
-	"BSL-1.0": "Permissive License",
-	"EPL-2.0": "Weak Copyleft License",
-	"CC0-1.0": "No Conditions Whatsoever",
-	"Unlicense": "No Conditions Whatsoever",
-};
-
 /**
  * Categorizes a license based on keywords
  * @param {string} key - License SPDX ID
@@ -30,44 +12,51 @@ const LICENSE_CATEGORIES = {
  * @returns {string} Category description
  */
 function categorizeLicense(key, name) {
-	// Check predefined categories first
-	if (LICENSE_CATEGORIES[key]) {
-		return LICENSE_CATEGORIES[key];
-	}
+    const nameLower = name.toLowerCase();
+    const keyLower = key.toLowerCase();
 
-	// Dynamic categorization based on keywords
-	const nameLower = name.toLowerCase();
-	const keyLower = key.toLowerCase();
+    // Strongest copyleft
+    if (keyLower.includes("agpl") || nameLower.includes("affero")) {
+        return "Strongest Copyleft License";
+    }
 
-	if (keyLower.includes("agpl") || nameLower.includes("affero")) {
-		return "Strongest Copyleft License";
-	}
-	if (keyLower.includes("gpl") && !keyLower.includes("lgpl")) {
-		return "Strong Copyleft License";
-	}
-	if (keyLower.includes("lgpl") || nameLower.includes("lesser")) {
-		return "Weak Copyleft License";
-	}
-	if (keyLower.includes("mpl") || nameLower.includes("mozilla")) {
-		return "Weak Copyleft License";
-	}
-	if (
-		keyLower.includes("cc0") ||
-		keyLower.includes("unlicense") ||
-		nameLower.includes("public domain")
-	) {
-		return "No Conditions Whatsoever";
-	}
-	if (
-		keyLower.includes("mit") ||
-		keyLower.includes("bsd") ||
-		keyLower.includes("apache") ||
-		nameLower.includes("permissive")
-	) {
-		return "Permissive License";
-	}
+    // Strong copyleft
+    if (keyLower.includes("gpl") && !keyLower.includes("lgpl")) {
+        return "Strong Copyleft License";
+    }
 
-	return "Open Source License";
+    // Weak copyleft
+    if (
+        keyLower.includes("lgpl") ||
+        keyLower.includes("mpl") ||
+        keyLower.includes("epl") ||
+        nameLower.includes("lesser") ||
+        nameLower.includes("mozilla")
+    ) {
+        return "Weak Copyleft License";
+    }
+
+    // Public domain / No conditions
+    if (
+        keyLower.includes("cc0") ||
+        keyLower.includes("unlicense") ||
+        nameLower.includes("public domain")
+    ) {
+        return "No Conditions Whatsoever";
+    }
+
+    // Permissive
+    if (
+        keyLower.includes("mit") ||
+        keyLower.includes("bsd") ||
+        keyLower.includes("apache") ||
+        keyLower.includes("bsl") ||
+        nameLower.includes("permissive")
+    ) {
+        return "Permissive License";
+    }
+
+    return "Open Source License";
 }
 
 /**
@@ -193,7 +182,7 @@ function run(argv) {
 		$()
 	);
 
-	const cacheFile = `${cacheDir}/licenses_cache.json`;
+	const cacheFile = `${cacheDir}/cache.json`;
 	const currentTime = Math.floor(Date.now() / 1000);
 
 	// Read existing cache
