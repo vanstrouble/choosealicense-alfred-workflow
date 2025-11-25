@@ -2,7 +2,6 @@ ObjC.import("Foundation");
 ObjC.import("stdlib");
 
 const GITHUB_API_URL = "https://api.github.com/licenses";
-const CACHE_EXPIRY = 86400; // 24 hours - licenses don't change frequently
 const CURL_TIMEOUT = 5;
 
 /**
@@ -57,37 +56,6 @@ function categorizeLicense(key, name) {
     }
 
     return "Open Source License";
-}
-
-/**
- * Reads text file if exists
- * @param {string} filepath - File path
- * @param {Object} fileManager - NSFileManager instance
- * @returns {string|null} File content or null
- */
-function readTextFile(filepath, fileManager) {
-	if (!fileManager.fileExistsAtPath(filepath)) return null;
-
-	const data = $.NSData.dataWithContentsOfFile(filepath);
-	if (!data) return null;
-
-	return $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding)
-		.js;
-}
-
-/**
- * Writes text file
- * @param {string} filepath - File path
- * @param {string} content - Content to write
- */
-function writeTextFile(filepath, content) {
-	const nsString = $.NSString.stringWithString(content);
-	nsString.writeToFileAtomicallyEncodingError(
-		filepath,
-		true,
-		$.NSUTF8StringEncoding,
-		$()
-	);
 }
 
 /**
@@ -165,92 +133,37 @@ function makeItems(licenses, query) {
  * @returns {string} JSON string for Alfred Script Filter
  */
 function run(argv) {
-	const query = argv[0]?.trim() || "";
+    const query = argv[0]?.trim() || "";
 
-	// Setup cache
-	const env = $.NSProcessInfo.processInfo.environment;
-	const workflowCache = ObjC.unwrap(
-		env.objectForKey("alfred_workflow_cache")
-	);
-	const cacheDir = workflowCache || "/tmp/alfred-choosealicense-cache";
-	const fileManager = $.NSFileManager.defaultManager;
+    const licenses = fetchLicenses();
 
-	fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
-		$(cacheDir),
-		true,
-		$(),
-		$()
-	);
+    if (!licenses || !Array.isArray(licenses)) {
+        return JSON.stringify({
+            items: [
+                {
+                    title: "Error fetching licenses",
+                    subtitle: "Could not connect to GitHub API. Please try again.",
+                    valid: false,
+                },
+            ],
+        });
+    }
 
-	const cacheFile = `${cacheDir}/cache.json`;
-	const currentTime = Math.floor(Date.now() / 1000);
+    const items = makeItems(licenses, query);
 
-	// Read existing cache
-	let cache = {};
-	const cacheData = readTextFile(cacheFile, fileManager);
-	if (cacheData) {
-		try {
-			cache = JSON.parse(cacheData);
-		} catch (e) {
-			cache = {};
-		}
-	}
+    if (items.length === 0) {
+        return JSON.stringify({
+            items: [
+                {
+                    title: "No licenses found",
+                    subtitle: `No results for "${query}"`,
+                    valid: false,
+                },
+            ],
+        });
+    }
 
-	// Check cache validity
-	let licenses = [];
-	if (
-		cache.licenses &&
-		cache.timestamp &&
-		currentTime - cache.timestamp < CACHE_EXPIRY
-	) {
-		licenses = cache.licenses;
-	} else {
-		// Fetch fresh data
-		const freshLicenses = fetchLicenses();
-
-		if (!freshLicenses || !Array.isArray(freshLicenses)) {
-			// Try to use stale cache if available
-			if (cache.licenses && Array.isArray(cache.licenses)) {
-				licenses = cache.licenses;
-			} else {
-				return JSON.stringify({
-					items: [
-						{
-							title: "Error fetching licenses",
-							subtitle:
-								"Could not connect to GitHub API. Please try again.",
-							valid: false,
-						},
-					],
-				});
-			}
-		} else {
-			licenses = freshLicenses;
-
-			// Update cache
-			cache = {
-				licenses: licenses,
-				timestamp: currentTime,
-			};
-			writeTextFile(cacheFile, JSON.stringify(cache));
-		}
-	}
-
-	const items = makeItems(licenses, query);
-
-	if (items.length === 0) {
-		return JSON.stringify({
-			items: [
-				{
-					title: "No licenses found",
-					subtitle: `No results for "${query}"`,
-					valid: false,
-				},
-			],
-		});
-	}
-
-	return JSON.stringify({
-		items: items,
-	});
+    return JSON.stringify({
+        items: items,
+    });
 }
