@@ -106,10 +106,11 @@ function makeItems(licenses, query) {
 
 	return licenses
 		.filter((license) => {
-			if (!query) return true;
-			const name = license.name.toLowerCase();
-			const key = license.key.toLowerCase();
-			return name.includes(queryLower) || key.includes(queryLower);
+			if (!queryLower) return true;
+			return (
+				license.name.toLowerCase().includes(queryLower) ||
+				license.key.toLowerCase().includes(queryLower)
+			);
 		})
 		.map((license) => ({
 			uid: license.key,
@@ -118,10 +119,15 @@ function makeItems(licenses, query) {
 			arg: license.key,
 			autocomplete: license.name,
 			valid: true,
+			quicklookurl: `https://choosealicense.com/licenses/${license.key}/`,
 			mods: {
 				cmd: {
-					subtitle: `View ${license.name} details on GitHub`,
-					arg: license.html_url || license.url,
+					subtitle: `Paste ${license.spdx_id} on frontmost app`,
+					arg: license.key,
+				},
+				alt: {
+					subtitle: `View ${license.spdx_id} on View Text`,
+					arg: license.key,
 				},
 			},
 		}));
