@@ -3,6 +3,7 @@ ObjC.import("stdlib");
 
 const GITHUB_API_URL = "https://api.github.com/licenses";
 const CURL_TIMEOUT = 5;
+const CACHE_EXPIRY = 86400; // 24 hours in seconds
 
 /**
  * Categorizes a license based on keywords
@@ -56,6 +57,71 @@ function categorizeLicense(key, name) {
     }
 
     return "Open Source License";
+}
+
+/**
+ * Reads text file if exists
+ * @param {string} filepath - File path
+ * @param {Object} fileManager - NSFileManager instance
+ * @returns {string|null} File content or null
+ */
+function readTextFile(filepath, fileManager) {
+	if (!fileManager.fileExistsAtPath(filepath)) return null;
+
+	const data = $.NSData.dataWithContentsOfFile(filepath);
+	if (!data) return null;
+
+	return $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
+}
+
+/**
+ * Writes text file
+ * @param {string} filepath - File path
+ * @param {string} content - Content to write
+ */
+function writeTextFile(filepath, content) {
+	const nsString = $.NSString.stringWithString(content);
+	nsString.writeToFileAtomicallyEncodingError(
+		filepath,
+		true,
+		$.NSUTF8StringEncoding,
+		$()
+	);
+}
+
+/**
+ * Gets cached licenses or fetches from API if expired
+ * @param {string} cacheDir - Cache directory path
+ * @param {Object} fileManager - NSFileManager instance
+ * @returns {Object[]|null} Array of license objects or null
+ */
+function getCachedLicenses(cacheDir, fileManager) {
+	const cacheFile = `${cacheDir}/licenses.json`;
+
+	// Try to read cache
+	const cacheData = readTextFile(cacheFile, fileManager);
+	if (cacheData) {
+		try {
+			const licenses = JSON.parse(cacheData);
+
+			// Return cached licenses if valid array
+			if (Array.isArray(licenses) && licenses.length > 0) {
+				return licenses;
+			}
+		} catch (e) {
+			// Invalid cache, will fetch fresh data
+		}
+	}
+
+	// Cache doesn't exist or is invalid, fetch fresh data
+	const licenses = fetchLicenses();
+
+	if (licenses && Array.isArray(licenses)) {
+		// Save to cache directly as JSON array
+		writeTextFile(cacheFile, JSON.stringify(licenses));
+	}
+
+	return licenses;
 }
 
 /**
@@ -141,7 +207,22 @@ function makeItems(licenses, query) {
 function run(argv) {
     const query = argv[0]?.trim() || "";
 
-    const licenses = fetchLicenses();
+    // Get cache directory
+    const env = $.NSProcessInfo.processInfo.environment;
+    const workflowCache = ObjC.unwrap(env.objectForKey("alfred_workflow_cache"));
+    const cacheDir = workflowCache || "/tmp/alfred-choosealicense-cache";
+    const fileManager = $.NSFileManager.defaultManager;
+
+    // Create cache directory if it doesn't exist
+    fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
+        $(cacheDir),
+        true,
+        $(),
+        $()
+    );
+
+    // Get licenses from cache or API
+    const licenses = getCachedLicenses(cacheDir, fileManager);
 
     if (!licenses || !Array.isArray(licenses)) {
         return JSON.stringify({
