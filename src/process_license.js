@@ -4,6 +4,13 @@ ObjC.import("stdlib");
 const GITHUB_LICENSE_API_URL = "https://api.github.com/licenses";
 const CURL_TIMEOUT = 5;
 
+// Cache configuration - initialized once globally
+const ENV = $.NSProcessInfo.processInfo.environment;
+const WORKFLOW_CACHE = ObjC.unwrap(ENV.objectForKey("alfred_workflow_cache"));
+const CACHE_DIR = WORKFLOW_CACHE || "/tmp/alfred-choosealicense-cache";
+const FILE_MANAGER = $.NSFileManager.defaultManager;
+const CACHE_FILE = `${CACHE_DIR}/used-licenses.json`;
+
 /**
  * Reads and parses JSON from cache file
  * @param {string} cacheFile - Cache file path
@@ -124,23 +131,16 @@ function run(argv) {
         });
     }
 
-    // Get cache directory and file path
-    const env = $.NSProcessInfo.processInfo.environment;
-    const workflowCache = ObjC.unwrap(env.objectForKey("alfred_workflow_cache"));
-    const cacheDir = workflowCache || "/tmp/alfred-choosealicense-cache";
-    const fileManager = $.NSFileManager.defaultManager;
-    const cacheFile = `${cacheDir}/used-licenses.json`;
-
     // Create cache directory if it doesn't exist
-    fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
-        $(cacheDir),
+    FILE_MANAGER.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
+        $(CACHE_DIR),
         true,
         $(),
         $()
     );
 
     // Get license from cache or API
-    const license = getLicense(licenseKey, cacheFile);
+    const license = getLicense(licenseKey, CACHE_FILE);
 
     if (!license) {
         return JSON.stringify({

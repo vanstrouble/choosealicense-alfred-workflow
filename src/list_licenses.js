@@ -5,6 +5,13 @@ const GITHUB_API_URL = "https://api.github.com/licenses";
 const CURL_TIMEOUT = 5;
 const CACHE_EXPIRY = 31536000; // 1 year in seconds
 
+// Cache configuration - initialized once globally
+const ENV = $.NSProcessInfo.processInfo.environment;
+const WORKFLOW_CACHE = ObjC.unwrap(ENV.objectForKey("alfred_workflow_cache"));
+const CACHE_DIR = WORKFLOW_CACHE || "/tmp/alfred-choosealicense-cache";
+const FILE_MANAGER = $.NSFileManager.defaultManager;
+const CACHE_FILE = `${CACHE_DIR}/list-licenses.json`;
+
 /**
  * Categorizes a license based on keywords
  * @param {string} key - License SPDX ID
@@ -221,23 +228,16 @@ function makeItems(licenses) {
  * @returns {string} JSON string for Alfred Script Filter
  */
 function run(argv) {
-    // Get cache directory and file path
-    const env = $.NSProcessInfo.processInfo.environment;
-    const workflowCache = ObjC.unwrap(env.objectForKey("alfred_workflow_cache"));
-    const cacheDir = workflowCache || "/tmp/alfred-choosealicense-cache";
-    const fileManager = $.NSFileManager.defaultManager;
-    const cacheFile = `${cacheDir}/list-licenses.json`;
-
     // Create cache directory if it doesn't exist
-    fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
-        $(cacheDir),
+    FILE_MANAGER.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
+        $(CACHE_DIR),
         true,
         $(),
         $()
     );
 
     // Get licenses from cache or API
-    const licenses = getLicenses(cacheFile, fileManager);
+    const licenses = getLicenses(CACHE_FILE, FILE_MANAGER);
 
     if (!licenses || !Array.isArray(licenses)) {
         return JSON.stringify({
