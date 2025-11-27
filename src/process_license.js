@@ -110,10 +110,10 @@ function replaceYear(year, key, text) {
  * Processes license text by replacing placeholders
  * @param {Object} license - License object from API
  * @param {string} author - Author name from Alfred variable
- * @returns {Object} License object with processed body
+ * @returns {string} Processed license body text
  */
 function processLicense(license, author) {
-    if (!license || !license.body) return license;
+    if (!license || !license.body) return "";
 
     const currentYear = new Date().getFullYear().toString();
     let processedBody = license.body;
@@ -124,10 +124,7 @@ function processLicense(license, author) {
     // Replace year placeholder
     processedBody = replaceYear(currentYear, license.key, processedBody);
 
-    return {
-        ...license,
-        body: processedBody,
-    };
+    return processedBody;
 }
 
 /**
@@ -270,8 +267,8 @@ function run(argv) {
         });
     }
 
-    // Process license with author and year
-    const processedLicense = processLicense(license, author);
+    // Process license body with author and year
+    const processedBody = processLicense(license, author);
 
-    return JSON.stringify(processedLicense);
+    return processedBody;
 }
