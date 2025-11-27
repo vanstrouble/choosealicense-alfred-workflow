@@ -7,7 +7,7 @@ const CURL_TIMEOUT = 5;
 /**
  * Reads and parses JSON from cache file
  * @param {string} cacheFile - Cache file path
- * @returns {Object|null} Parsed cache object or null
+ * @returns {Object[]|null} Parsed cache array or null
  */
 function readCache(cacheFile) {
     try {
@@ -15,16 +15,18 @@ function readCache(cacheFile) {
         if (!data) return null;
 
         const jsonString = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
-        return JSON.parse(jsonString);
+        const cache = JSON.parse(jsonString);
+
+        return Array.isArray(cache) ? cache : null;
     } catch (e) {
         return null;
     }
 }
 
 /**
- * Writes cache object to file
+ * Writes cache array to file
  * @param {string} cacheFile - Cache file path
- * @param {Object} cacheData - Cache data to write
+ * @param {Object[]} cacheData - Cache data array to write
  */
 function writeCache(cacheFile, cacheData) {
     try {
@@ -86,20 +88,21 @@ function fetchLicense(licenseKey) {
  * @returns {Object|null} License object or null
  */
 function getLicense(licenseKey, cacheFile) {
-    // Read existing cache
-    let cache = readCache(cacheFile) || {};
+    // Read existing cache (array of licenses)
+    let cache = readCache(cacheFile) || [];
 
     // Check if license is already cached
-    if (cache[licenseKey]) {
-        return cache[licenseKey];
+    const cachedLicense = cache.find(license => license.key === licenseKey);
+    if (cachedLicense) {
+        return cachedLicense;
     }
 
     // Fetch from API
     const license = fetchLicense(licenseKey);
 
     if (license && license.key) {
-        // Add to cache
-        cache[licenseKey] = license;
+        // Add to cache array
+        cache.push(license);
         writeCache(cacheFile, cache);
         return license;
     }
