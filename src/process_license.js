@@ -12,6 +12,125 @@ const FILE_MANAGER = $.NSFileManager.defaultManager;
 const CACHE_FILE = `${CACHE_DIR}/used-licenses.json`;
 
 /**
+ * Replaces author placeholder in license text based on license key
+ * @param {string} author - Author name to insert
+ * @param {string} key - License key (e.g., "mit", "apache-2.0")
+ * @param {string} text - License text with placeholders
+ * @returns {string} License text with author replaced
+ */
+function replaceAuthor(author, key, text) {
+    switch (key) {
+        case "agpl-3.0":
+        case "gpl-2.0":
+        case "gpl-3.0":
+        case "lgpl-2.1":
+            text = text.replace(/<name of author>/g, author);
+            break;
+
+        case "apache-2.0":
+            text = text.replace(/\[name of copyright owner\]/g, author);
+            break;
+
+        case "bsd-2-clause":
+        case "bsd-3-clause":
+        case "mit":
+        case "bsd-4-clause":
+        case "isc":
+            text = text.replace(/\[fullname\]/g, author);
+            break;
+
+        case "wtfpl":
+            text = text.replace(/Sam Hocevar <sam@hocevar\.net>/g, author);
+            break;
+
+        case "bsl-1.0":
+        case "cc0-1.0":
+        case "epl-2.0":
+        case "mpl-2.0":
+        case "unlicense":
+        case "cc-by-4.0":
+        case "lgpl-3.0":
+        default:
+            break;
+    }
+
+    return text;
+}
+
+/**
+ * Replaces year placeholder in license text based on license key
+ * @param {string} year - Year to insert
+ * @param {string} key - License key (e.g., "mit", "apache-2.0")
+ * @param {string} text - License text with placeholders
+ * @returns {string} License text with year replaced
+ */
+function replaceYear(year, key, text) {
+    switch (key) {
+        case "agpl-3.0":
+        case "gpl-2.0":
+        case "gpl-3.0":
+        case "lgpl-2.1":
+            text = text.replace(/<year>/g, year);
+            break;
+
+        case "apache-2.0":
+            text = text.replace(/\[yyyy\]/g, year);
+            break;
+
+        case "bsd-2-clause":
+        case "bsd-3-clause":
+        case "mit":
+        case "bsd-4-clause":
+        case "isc":
+            text = text.replace(/\[year\]/g, year);
+            break;
+
+        case "wtfpl": {
+            // Replace second occurrence
+            let count = 0;
+            text = text.replace(/2004/g, (match) => (++count === 2 ? year : match));
+            break;
+        }
+
+        case "bsl-1.0":
+        case "cc0-1.0":
+        case "epl-2.0":
+        case "mpl-2.0":
+        case "unlicense":
+        case "cc-by-4.0":
+        case "lgpl-3.0":
+        default:
+            break;
+    }
+
+    return text;
+}
+
+/**
+ * Processes license text by replacing placeholders
+ * @param {Object} license - License object from API
+ * @param {string} author - Author name from Alfred variable
+ * @returns {Object} License object with processed body
+ */
+function processLicense(license, author) {
+    if (!license || !license.body) return license;
+
+    const currentYear = new Date().getFullYear().toString();
+    let processedBody = license.body;
+
+    // Replace author placeholder
+    processedBody = replaceAuthor(author, license.key, processedBody);
+
+    // Replace year placeholder
+    processedBody = replaceYear(currentYear, license.key, processedBody);
+
+    return {
+        ...license,
+        body: processedBody,
+    };
+}
+
+/**
  * Reads and parses JSON from cache file
  * @param {string} cacheFile - Cache file path
  * @returns {Object[]|null} Parsed cache array or null
@@ -131,6 +250,9 @@ function run(argv) {
         });
     }
 
+    // Get author from Alfred workflow variable
+    const author = ObjC.unwrap(ENV.objectForKey("author"));
+
     // Create cache directory if it doesn't exist
     FILE_MANAGER.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
         $(CACHE_DIR),
@@ -148,5 +270,8 @@ function run(argv) {
         });
     }
 
-    return JSON.stringify(license);
+    // Process license with author and year
+    const processedLicense = processLicense(license, author);
+
+    return JSON.stringify(processedLicense);
 }
