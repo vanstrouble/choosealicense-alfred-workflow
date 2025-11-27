@@ -60,68 +60,58 @@ function categorizeLicense(key, name) {
 }
 
 /**
- * Reads text file if exists
- * @param {string} filepath - File path
+ * Checks if cache file exists and is fresh
+ * @param {string} cacheFile - Cache file path
  * @param {Object} fileManager - NSFileManager instance
- * @returns {string|null} File content or null
+ * @returns {boolean} True if cache is fresh
  */
-function readTextFile(filepath, fileManager) {
-	if (!fileManager.fileExistsAtPath(filepath)) return null;
+function isCacheFresh(cacheFile, fileManager) {
+    if (!fileManager.fileExistsAtPath(cacheFile)) return false;
 
-	const data = $.NSData.dataWithContentsOfFile(filepath);
-	if (!data) return null;
+    const attrs = fileManager.attributesOfItemAtPathError(cacheFile, $());
+    const modDate = attrs.objectForKey($.NSFileModificationDate);
+    const now = $.NSDate.date;
 
-	return $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
+    return now.timeIntervalSinceDate(modDate) < CACHE_EXPIRY;
 }
 
 /**
- * Writes text file
- * @param {string} filepath - File path
- * @param {string} content - Content to write
+ * Reads and parses JSON from cache file
+ * @param {string} cacheFile - Cache file path
+ * @returns {Object[]|null} Parsed licenses or null
  */
-function writeTextFile(filepath, content) {
-	const nsString = $.NSString.stringWithString(content);
-	nsString.writeToFileAtomicallyEncodingError(
-		filepath,
-		true,
-		$.NSUTF8StringEncoding,
-		$()
-	);
+function readCache(cacheFile) {
+    try {
+        const data = $.NSData.dataWithContentsOfFile(cacheFile);
+        if (!data) return null;
+
+        const jsonString = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
+        const licenses = JSON.parse(jsonString);
+
+        return Array.isArray(licenses) ? licenses : null;
+    } catch (e) {
+        return null;
+    }
 }
 
 /**
- * Gets cached licenses or fetches from API if expired
- * @param {string} cacheDir - Cache directory path
- * @param {Object} fileManager - NSFileManager instance
- * @returns {Object[]|null} Array of license objects or null
+ * Writes licenses to cache file
+ * @param {string} cacheFile - Cache file path
+ * @param {Object[]} licenses - Licenses to cache
  */
-function getCachedLicenses(cacheDir, fileManager) {
-	const cacheFile = `${cacheDir}/licenses.json`;
-
-	// Try to read cache
-	const cacheData = readTextFile(cacheFile, fileManager);
-	if (cacheData) {
-		try {
-			const licenses = JSON.parse(cacheData);
-
-			// Return cached licenses if valid array
-			if (Array.isArray(licenses) && licenses.length > 0) {
-				return licenses;
-			}
-		} catch (e) {
-			// Invalid cache, will fetch fresh data
-		}
-	}
-
-	// Cache doesn't exist or is invalid, fetch fresh data
-	const licenses = fetchLicenses();
-
-	if (licenses && Array.isArray(licenses)) {
-		// Save to cache directly as JSON array
-		writeTextFile(cacheFile, JSON.stringify(licenses));
-	}
-
-	return licenses;
+function writeCache(cacheFile, licenses) {
+    try {
+        const jsonString = JSON.stringify(licenses);
+        const nsString = $.NSString.stringWithString(jsonString);
+        nsString.writeToFileAtomicallyEncodingError(
+            cacheFile,
+            true,
+            $.NSUTF8StringEncoding,
+            $()
+        );
+    } catch (e) {
+        // Fail silently on cache write errors
+    }
 }
 
 /**
@@ -129,74 +119,88 @@ function getCachedLicenses(cacheDir, fileManager) {
  * @returns {Object[]|null} Array of license objects or null
  */
 function fetchLicenses() {
-	try {
-		const task = $.NSTask.alloc.init;
-		task.setLaunchPath("/bin/sh");
-		task.setArguments([
-			"-c",
-			`/usr/bin/curl -s --max-time ${CURL_TIMEOUT} -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "${GITHUB_API_URL}"`,
-		]);
+    try {
+        const task = $.NSTask.alloc.init;
+        task.setLaunchPath("/bin/sh");
+        task.setArguments([
+            "-c",
+            `curl -s --max-time ${CURL_TIMEOUT} -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" "${GITHUB_API_URL}"`,
+        ]);
 
-		const pipe = $.NSPipe.pipe;
-		task.setStandardOutput(pipe);
-		task.setStandardError($.NSPipe.pipe);
+        const pipe = $.NSPipe.pipe;
+        task.setStandardOutput(pipe);
+        task.setStandardError($.NSPipe.pipe);
 
-		task.launch;
-		task.waitUntilExit;
+        task.launch;
+        task.waitUntilExit;
 
-		const data = pipe.fileHandleForReading.readDataToEndOfFile;
+        const data = pipe.fileHandleForReading.readDataToEndOfFile;
 
-		if (!data || data.length === 0) {
-			return null;
-		}
+        if (!data || data.length === 0) {
+            return null;
+        }
 
-		const jsonString = $.NSString.alloc.initWithDataEncoding(
-			data,
-			$.NSUTF8StringEncoding
-		).js;
+        const jsonString = $.NSString.alloc.initWithDataEncoding(
+            data,
+            $.NSUTF8StringEncoding
+        ).js;
 
-		return JSON.parse(jsonString);
-	} catch (e) {
-		return null;
-	}
+        return JSON.parse(jsonString);
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Gets licenses from cache or API
+ * @param {string} cacheFile - Cache file path
+ * @param {Object} fileManager - NSFileManager instance
+ * @returns {Object[]|null} Array of license objects or null
+ */
+function getLicenses(cacheFile, fileManager) {
+    // Try cache first if it's fresh
+    if (isCacheFresh(cacheFile, fileManager)) {
+        const cachedLicenses = readCache(cacheFile);
+        if (cachedLicenses) return cachedLicenses;
+    }
+
+    // Fetch fresh data from API
+    const licenses = fetchLicenses();
+
+    // Cache the fresh data if successful
+    if (licenses && Array.isArray(licenses)) {
+        writeCache(cacheFile, licenses);
+    }
+
+    return licenses;
 }
 
 /**
  * Converts licenses into Alfred-compatible JSON items
  * @param {Object[]} licenses - Array of license objects
- * @param {string} query - Search query for filtering
  * @returns {Object[]} Array of Alfred item objects
  */
-function makeItems(licenses, query) {
-	const queryLower = query.toLowerCase();
-
-	return licenses
-		.filter((license) => {
-			if (!queryLower) return true;
-			return (
-				license.name.toLowerCase().includes(queryLower) ||
-				license.key.toLowerCase().includes(queryLower)
-			);
-		})
-		.map((license) => ({
-			uid: license.key,
-			title: license.name,
-			subtitle: categorizeLicense(license.key, license.name),
-			arg: license.key,
-			autocomplete: license.name,
-			valid: true,
-			quicklookurl: `https://choosealicense.com/licenses/${license.key}/`,
-			mods: {
-				cmd: {
-					subtitle: `Paste ${license.spdx_id} on frontmost app`,
-					arg: license.key,
-				},
-				alt: {
-					subtitle: `View ${license.spdx_id} on View Text`,
-					arg: license.key,
-				},
-			},
-		}));
+function makeItems(licenses) {
+    return licenses.map((license) => ({
+        uid: license.key,
+        title: license.name,
+        subtitle: categorizeLicense(license.key, license.name),
+        arg: license.key,
+        autocomplete: license.name,
+        valid: true,
+        match: `${license.name} ${license.key} ${license.spdx_id}`, // For Alfred's fuzzy matching
+        quicklookurl: `https://choosealicense.com/licenses/${license.key}/`,
+        mods: {
+            cmd: {
+                subtitle: `Paste ${license.spdx_id} on frontmost app`,
+                arg: license.key,
+            },
+            alt: {
+                subtitle: `View ${license.spdx_id} on Text Viewer`,
+                arg: license.key,
+            },
+        },
+    }));
 }
 
 /**
@@ -205,13 +209,12 @@ function makeItems(licenses, query) {
  * @returns {string} JSON string for Alfred Script Filter
  */
 function run(argv) {
-    const query = argv[0]?.trim() || "";
-
-    // Get cache directory
+    // Get cache directory and file path
     const env = $.NSProcessInfo.processInfo.environment;
     const workflowCache = ObjC.unwrap(env.objectForKey("alfred_workflow_cache"));
     const cacheDir = workflowCache || "/tmp/alfred-choosealicense-cache";
     const fileManager = $.NSFileManager.defaultManager;
+    const cacheFile = `${cacheDir}/licenses.json`;
 
     // Create cache directory if it doesn't exist
     fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
@@ -222,7 +225,7 @@ function run(argv) {
     );
 
     // Get licenses from cache or API
-    const licenses = getCachedLicenses(cacheDir, fileManager);
+    const licenses = getLicenses(cacheFile, fileManager);
 
     if (!licenses || !Array.isArray(licenses)) {
         return JSON.stringify({
@@ -236,21 +239,8 @@ function run(argv) {
         });
     }
 
-    const items = makeItems(licenses, query);
+    // Convert to Alfred items (no filtering - let Alfred handle it)
+    const items = makeItems(licenses);
 
-    if (items.length === 0) {
-        return JSON.stringify({
-            items: [
-                {
-                    title: "No licenses found",
-                    subtitle: `No results for "${query}"`,
-                    valid: false,
-                },
-            ],
-        });
-    }
-
-    return JSON.stringify({
-        items: items,
-    });
+    return JSON.stringify({ items });
 }
