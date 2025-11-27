@@ -3,7 +3,7 @@ ObjC.import("stdlib");
 
 const GITHUB_API_URL = "https://api.github.com/licenses";
 const CURL_TIMEOUT = 5;
-const CACHE_EXPIRY = 86400; // 24 hours in seconds
+const CACHE_EXPIRY = 31536000; // 1 year in seconds
 
 /**
  * Categorizes a license based on keywords
@@ -68,11 +68,23 @@ function categorizeLicense(key, name) {
 function isCacheFresh(cacheFile, fileManager) {
     if (!fileManager.fileExistsAtPath(cacheFile)) return false;
 
-    const attrs = fileManager.attributesOfItemAtPathError(cacheFile, $());
-    const modDate = attrs.objectForKey($.NSFileModificationDate);
-    const now = $.NSDate.date;
+    try {
+        const attrs = fileManager.attributesOfItemAtPathError(cacheFile, $());
+        if (!attrs) return false;
 
-    return now.timeIntervalSinceDate(modDate) < CACHE_EXPIRY;
+        const modDate = attrs.objectForKey($.NSFileModificationDate);
+        if (!modDate) return false;
+
+        // Calculate expiry date once instead of time intervals
+        const expiryDate = modDate.dateByAddingTimeInterval(CACHE_EXPIRY);
+        const now = $.NSDate.date;
+
+        // Simple comparison: is current time before expiry?
+        return now.compare(expiryDate) === $.NSOrderedAscending;
+    } catch (e) {
+        // If we can't read file attributes, consider cache stale
+        return false;
+    }
 }
 
 /**
@@ -214,7 +226,7 @@ function run(argv) {
     const workflowCache = ObjC.unwrap(env.objectForKey("alfred_workflow_cache"));
     const cacheDir = workflowCache || "/tmp/alfred-choosealicense-cache";
     const fileManager = $.NSFileManager.defaultManager;
-    const cacheFile = `${cacheDir}/licenses.json`;
+    const cacheFile = `${cacheDir}/list-licenses.json`;
 
     // Create cache directory if it doesn't exist
     fileManager.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
