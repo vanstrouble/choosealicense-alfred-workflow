@@ -209,6 +209,9 @@ function makeItems(licenses) {
         valid: true,
         match: `${license.name} ${license.key} ${license.spdx_id}`, // For Alfred's fuzzy matching
         quicklookurl: `https://choosealicense.com/licenses/${license.key}/`,
+        variables: {
+            spdx_id_license: license.spdx_id,
+        },
         mods: {
             cmd: {
                 subtitle: `Paste ${license.spdx_id} on frontmost app`,
