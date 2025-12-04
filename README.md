@@ -1,47 +1,30 @@
 # <img src="img/logo.png" alt="Choose License Logo" width="45" align="center"> Choose License | Alfred Workflow
 
-> **⚠️ Beta Version - Proof of Concept**
-> This is currently a proof of concept and beta version. Features and functionality may change.
+Choose a license from the most commonly used licenses on GitHub directly in Alfred.
 
-An Alfred workflow that allows you to search, browse, and copy Open Source licenses from [choosealicense.com](https://choosealicense.com) directly from Alfred.
+## Download
 
-## Features
-
-- 🔍 **Search licenses** by name or SPDX ID
-- 📖 **View license details** including description, permissions, conditions, and limitations
-- 📋 **Copy license text** to clipboard with proper formatting
-- 🗂️ **Local license database** for fast offline access
-- ⚡ **Quick workflow** integration with Alfred
-
-## Current Status
-
-This project is in **beta** and serves as a **proof of concept**. The workflow demonstrates the core functionality of license management through Alfred but may undergo significant changes before a stable release.
-
-## Installation
-
-*Installation instructions will be provided when the workflow reaches a stable version.*
+- You can download it directly from GitHub [here](https://github.com/vanstrouble/choosealicense-alfred-workflow/releases).
 
 ## Usage
 
-*Usage documentation will be expanded as the project develops.*
+Type your search query in Alfred using your configured keyword (default: `lic` or your preferred trigger).
 
-## Development
+- **Keyword:** `[your-keyword] [search query]`
+- **Action:** Press `Enter` to copy the license text to clipboard
+- **Paste:** Hold `⌘` (Command) and press `Enter` to paste license into frontmost app
+- **Preview:** Hold `⌥` (Option/Alt) and press `Enter` to view formatted license in Text Viewer
+- **Quick Look:** Press `⇧` (Shift) or `⌘Y` to preview license on choosealicense.com
 
-The workflow is built with Node.js and includes:
+<img src="img/scs-1.png" alt="Choose a license Alfred Workflow list" width="530"/>
 
-- License data fetching and local storage
-- License search and filtering capabilities
-- License text processing and formatting
-- Alfred integration for seamless user experience
+<img src="img/lic-md-mit.png" alt="Choose a license Alfred Workflow Text View of MIT license" width="530"/>
 
-## License
+## Features
 
-This project itself is open source. License details will be specified in future releases.
-
-## Contributing
-
-As this is a proof of concept, contribution guidelines will be established as the project matures.
-
----
-
-*This is a beta version and proof of concept. Please report any issues or suggestions for improvement.*
+- **Fast license search** by name.
+- **Smart caching** with yearly refresh - licenses are fetched once and cached locally for fast offline access.
+- **License preview** in Alfred's Text Viewer with formatted Markdown including permissions, conditions, and limitations.
+- **Automatic personalization** - replaces placeholder text with your name from workflow configuration.
+- **Quick actions** - copy license text to clipboard or paste directly into frontmost application.
+- **Visual previews** with Quick Look support to view full license details before selecting.
