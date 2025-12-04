@@ -10,11 +10,11 @@ Choose a license from the most commonly used licenses on GitHub directly in Alfr
 
 Type your search query in Alfred using your configured keyword (default: `lic` or your preferred trigger).
 
-- **Keyword:** `[your-keyword] [search query]`
-- **Action:** Press `Enter` to copy the license text to clipboard
-- **Paste:** Hold `⌘` (Command) and press `Enter` to paste license into frontmost app
-- **Preview:** Hold `⌥` (Option/Alt) and press `Enter` to view formatted license in Text Viewer
-- **Quick Look:** Press `⇧` (Shift) or `⌘Y` to preview license on choosealicense.com
+- **Keyword:** `[your-keyword] [search query]`.
+- **Action:** Press `Enter` to copy the license text to clipboard.
+- **Paste:** Hold `⌘` (Command) and press `Enter` to paste license into frontmost app.
+- **Preview:** Hold `⌥` (Option/Alt) and press `Enter` to view the detailed license in the Text Viewer.
+- **Quick Look:** Press `⇧` (Shift) or `⌘Y` to preview license on choosealicense.com.
 
 <img src="img/scs-1.png" alt="Choose a license Alfred Workflow list" width="530"/>
 
@@ -28,3 +28,4 @@ Type your search query in Alfred using your configured keyword (default: `lic` o
 - **Automatic personalization** - replaces placeholder text with your name from workflow configuration.
 - **Quick actions** - copy license text to clipboard or paste directly into frontmost application.
 - **Visual previews** with Quick Look support to view full license details before selecting.
+- **Hotkey support** - assign custom keyboard shortcuts in Alfred for instant workflow access.
