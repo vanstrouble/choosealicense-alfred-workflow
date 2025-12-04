@@ -215,11 +215,11 @@ function makeItems(licenses) {
         },
         mods: {
             cmd: {
-                subtitle: `Paste ${license.spdx_id} on frontmost app`,
+                subtitle: `⌘ Paste the ${license.spdx_id} on the frontmost app`,
                 arg: license.key,
             },
             alt: {
-                subtitle: `View ${license.spdx_id} on Text Viewer`,
+                subtitle: `⌥ View the detailed ${license.spdx_id} on the Text Viewer`,
                 arg: license.key,
             },
         },
