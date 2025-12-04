@@ -49,7 +49,7 @@ function formatList(items) {
 }
 
 /**
- * Formats array items as bullet list with capitalized first letter
+ * Formats array items as bullet list with each word capitalized
  * @param {string[]} items - Array of items
  * @returns {string} Formatted bullet list
  */
@@ -57,9 +57,13 @@ function formatList(items) {
     if (!items || items.length === 0) return "";
     return items
         .map(item => {
-            // Replace hyphens with spaces and capitalize first letter
-            const formatted = item.replace(/-/g, " ");
-            return `- ${formatted.charAt(0).toUpperCase() + formatted.slice(1)}`;
+            // Replace hyphens with spaces and capitalize each word
+            const formatted = item
+                .replace(/-/g, " ")
+                .split(" ")
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(" ");
+            return `- ${formatted}`;
         })
         .join("\n");
 }
@@ -80,21 +84,21 @@ function generateMarkdown(license, body) {
 
     // Permissions
     if (license.permissions && license.permissions.length > 0) {
-        markdown += `**Permissions**\n\n`;
+        markdown += `🟢 **Permissions**\n\n`;
         markdown += formatList(license.permissions);
         markdown += `\n\n`;
     }
 
     // Conditions
     if (license.conditions && license.conditions.length > 0) {
-        markdown += `**Conditions**\n\n`;
+        markdown += `🔵 **Conditions**\n\n`;
         markdown += formatList(license.conditions);
         markdown += `\n\n`;
     }
 
     // Limitations
     if (license.limitations && license.limitations.length > 0) {
-        markdown += `**Limitations**\n\n`;
+        markdown += `🔴 **Limitations**\n\n`;
         markdown += formatList(license.limitations);
         markdown += `\n\n`;
     }
@@ -110,9 +114,9 @@ function generateMarkdown(license, body) {
     if (license.html_url) {
         markdown += `[View on ChooseALicense.com](${license.html_url})`;
     }
-    if (license.url) {
-        markdown += ` | [API Reference](${license.url})`;
-    }
+    // if (license.url) {
+    //     markdown += ` | [API Reference](${license.url})`;
+    // }
 
     return markdown;
 }
