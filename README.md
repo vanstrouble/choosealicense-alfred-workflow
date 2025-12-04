@@ -1,4 +1,4 @@
-# <img src="img/logo.png" alt="Choose License Logo" width="45" align="center"> Choose License | Alfred Workflow
+# <img src="img/logo.png" alt="Choose a License Logo" width="45" align="center"> Choose a License | Alfred Workflow
 
 Choose a license from the most commonly used licenses on GitHub directly in Alfred.
 
