@@ -49,6 +49,22 @@ function formatList(items) {
 }
 
 /**
+ * Formats array items as bullet list with capitalized first letter
+ * @param {string[]} items - Array of items
+ * @returns {string} Formatted bullet list
+ */
+function formatList(items) {
+    if (!items || items.length === 0) return "";
+    return items
+        .map(item => {
+            // Replace hyphens with spaces and capitalize first letter
+            const formatted = item.replace(/-/g, " ");
+            return `- ${formatted.charAt(0).toUpperCase() + formatted.slice(1)}`;
+        })
+        .join("\n");
+}
+
+/**
  * Generates Markdown from license data
  * @param {Object} license - License object from cache
  * @param {string} body - Processed license body text
@@ -57,44 +73,34 @@ function formatList(items) {
 function generateMarkdown(license, body) {
     let markdown = `# ${license.name}\n\n`;
 
-    // SPDX ID
-    if (license.spdx_id) {
-        markdown += `**SPDX ID:** \`${license.spdx_id}\`\n\n`;
-    }
-
     // Description
     if (license.description) {
-        markdown += `## 📝 Description\n\n${license.description}\n\n`;
+        markdown += `**Description**\n\n${license.description}\n\n`;
     }
 
     // Permissions
     if (license.permissions && license.permissions.length > 0) {
-        markdown += `## ✅ Permissions\n\n`;
+        markdown += `**Permissions**\n\n`;
         markdown += formatList(license.permissions);
         markdown += `\n\n`;
     }
 
     // Conditions
     if (license.conditions && license.conditions.length > 0) {
-        markdown += `## ⚠️ Conditions\n\n`;
+        markdown += `**Conditions**\n\n`;
         markdown += formatList(license.conditions);
         markdown += `\n\n`;
     }
 
     // Limitations
     if (license.limitations && license.limitations.length > 0) {
-        markdown += `## 🚫 Limitations\n\n`;
+        markdown += `**Limitations**\n\n`;
         markdown += formatList(license.limitations);
         markdown += `\n\n`;
     }
 
-    // Implementation notes
-    if (license.implementation) {
-        markdown += `## 💡 Implementation\n\n${license.implementation}\n\n`;
-    }
-
     // License body
-    markdown += `## 📄 License Text\n\n`;
+    markdown += `**License Text**\n\n`;
     markdown += "```\n";
     markdown += body;
     markdown += "\n```\n\n";
