@@ -20,16 +20,19 @@ const CACHE_FILE = `${CACHE_DIR}/used-licenses.json`;
  * @returns {string} License text with author replaced
  */
 function replaceAuthor(author, key, text) {
+    // Use [fullname] as fallback if author is not provided
+    const authorName = author || "[fullname]";
+
     switch (key) {
         case "agpl-3.0":
         case "gpl-2.0":
         case "gpl-3.0":
         case "lgpl-2.1":
-            text = text.replace(/<name of author>/g, author);
+            text = text.replace(/<name of author>/g, authorName);
             break;
 
         case "apache-2.0":
-            text = text.replace(/\[name of copyright owner\]/g, author);
+            text = text.replace(/\[name of copyright owner\]/g, authorName);
             break;
 
         case "bsd-2-clause":
@@ -37,11 +40,11 @@ function replaceAuthor(author, key, text) {
         case "mit":
         case "bsd-4-clause":
         case "isc":
-            text = text.replace(/\[fullname\]/g, author);
+            text = text.replace(/\[fullname\]/g, authorName);
             break;
 
         case "wtfpl":
-            text = text.replace(/Sam Hocevar <sam@hocevar\.net>/g, author);
+            text = text.replace(/Sam Hocevar <sam@hocevar\.net>/g, authorName);
             break;
 
         case "bsl-1.0":

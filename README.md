@@ -23,9 +23,9 @@ Type your search query in Alfred using your configured keyword (default: `lic` o
 ## Features
 
 - **Fast license search** by name.
-- **Smart caching** with yearly refresh - licenses are fetched once and cached locally for fast offline access.
+- **Smart caching** with yearly refresh. Licenses are fetched once and cached locally for fast offline access.
 - **License preview** in Alfred's Text Viewer with formatted Markdown including permissions, conditions, and limitations.
-- **Automatic personalization** - replaces placeholder text with your name from workflow configuration.
-- **Quick actions** - copy license text to clipboard or paste directly into frontmost application.
+- **Automatic personalization** replaces placeholder text with your name from workflow configuration.
+- **Quick actions** to copy license text to clipboard or paste directly into frontmost application.
 - **Visual previews** with Quick Look support to view full license details before selecting.
-- **Hotkey support** - assign custom keyboard shortcuts in Alfred for instant workflow access.
+- **Hotkey support** to assign custom keyboard shortcuts in Alfred for instant workflow access.
