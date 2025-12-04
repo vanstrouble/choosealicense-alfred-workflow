@@ -211,6 +211,7 @@ function makeItems(licenses) {
         quicklookurl: `https://choosealicense.com/licenses/${license.key}/`,
         variables: {
             spdx_id_license: license.spdx_id,
+            key_license: license.key,
         },
         mods: {
             cmd: {
