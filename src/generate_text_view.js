@@ -39,13 +39,16 @@ function getLicense(licenseKey, cacheFile) {
 }
 
 /**
- * Formats array items as bullet list
- * @param {string[]} items - Array of items
- * @returns {string} Formatted bullet list
+ * Capitalizes each word in a string
+ * @param {string} text - Text with hyphens
+ * @returns {string} Capitalized text
  */
-function formatList(items) {
-    if (!items || items.length === 0) return "";
-    return items.map(item => `- ${item.replace(/-/g, " ")}`).join("\n");
+function capitalizeWords(text) {
+    return text
+        .replace(/-/g, " ")
+        .split(" ")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
 }
 
 /**
@@ -55,17 +58,15 @@ function formatList(items) {
  */
 function formatList(items) {
     if (!items || items.length === 0) return "";
-    return items
-        .map(item => {
-            // Replace hyphens with spaces and capitalize each word
-            const formatted = item
-                .replace(/-/g, " ")
-                .split(" ")
-                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                .join(" ");
-            return `- ${formatted}`;
-        })
-        .join("\n");
+
+    // Pre-allocate array for better performance
+    const formatted = new Array(items.length);
+
+    for (let i = 0; i < items.length; i++) {
+        formatted[i] = `- ${capitalizeWords(items[i])}`;
+    }
+
+    return formatted.join("\n");
 }
 
 /**
@@ -75,50 +76,40 @@ function formatList(items) {
  * @returns {string} Markdown formatted string
  */
 function generateMarkdown(license, body) {
-    let markdown = `# ${license.name}\n\n`;
+    const sections = [];
+
+    // Title
+    sections.push(`# ${license.name}\n`);
 
     // Description
     if (license.description) {
-        markdown += `**Description**\n\n${license.description}\n\n`;
+        sections.push(`**Description**\n\n${license.description}\n`);
     }
 
     // Permissions
-    if (license.permissions && license.permissions.length > 0) {
-        markdown += `🟢 **Permissions**\n\n`;
-        markdown += formatList(license.permissions);
-        markdown += `\n\n`;
+    if (license.permissions?.length > 0) {
+        sections.push(`🟢 **Permissions**\n\n${formatList(license.permissions)}\n`);
     }
 
     // Conditions
-    if (license.conditions && license.conditions.length > 0) {
-        markdown += `🔵 **Conditions**\n\n`;
-        markdown += formatList(license.conditions);
-        markdown += `\n\n`;
+    if (license.conditions?.length > 0) {
+        sections.push(`🔵 **Conditions**\n\n${formatList(license.conditions)}\n`);
     }
 
     // Limitations
-    if (license.limitations && license.limitations.length > 0) {
-        markdown += `🔴 **Limitations**\n\n`;
-        markdown += formatList(license.limitations);
-        markdown += `\n\n`;
+    if (license.limitations?.length > 0) {
+        sections.push(`🔴 **Limitations**\n\n${formatList(license.limitations)}\n`);
     }
 
     // License body
-    markdown += `**License Text**\n\n`;
-    markdown += "```\n";
-    markdown += body;
-    markdown += "\n```\n\n";
+    sections.push(`**License Text**\n\n\`\`\`\n${body}\n\`\`\`\n`);
 
-    // Footer with links
-    markdown += `---\n\n`;
+    // Footer
     if (license.html_url) {
-        markdown += `[View on ChooseALicense.com](${license.html_url})`;
+        sections.push(`---\n\n[View on ChooseALicense.com](${license.html_url})`);
     }
-    // if (license.url) {
-    //     markdown += ` | [API Reference](${license.url})`;
-    // }
 
-    return markdown;
+    return sections.join("\n");
 }
 
 /**
