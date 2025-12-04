@@ -3,6 +3,7 @@ ObjC.import("stdlib");
 
 const GITHUB_LICENSE_API_URL = "https://api.github.com/licenses";
 const CURL_TIMEOUT = 5;
+const CACHE_EXPIRY = 31536000; // 1 year in seconds
 
 // Cache configuration - initialized once globally
 const ENV = $.NSProcessInfo.processInfo.environment;
@@ -128,6 +129,34 @@ function processLicense(license, author) {
 }
 
 /**
+ * Checks if cache file exists and is fresh
+ * @param {string} cacheFile - Cache file path
+ * @param {Object} fileManager - NSFileManager instance
+ * @returns {boolean} True if cache is fresh
+ */
+function isCacheFresh(cacheFile, fileManager) {
+    if (!fileManager.fileExistsAtPath(cacheFile)) return false;
+
+    try {
+        const attrs = fileManager.attributesOfItemAtPathError(cacheFile, $());
+        if (!attrs) return false;
+
+        const modDate = attrs.objectForKey($.NSFileModificationDate);
+        if (!modDate) return false;
+
+        // Calculate expiry date once instead of time intervals
+        const expiryDate = modDate.dateByAddingTimeInterval(CACHE_EXPIRY);
+        const now = $.NSDate.date;
+
+        // Simple comparison: is current time before expiry?
+        return now.compare(expiryDate) === $.NSOrderedAscending;
+    } catch (e) {
+        // If we can't read file attributes, consider cache stale
+        return false;
+    }
+}
+
+/**
  * Reads and parses JSON from cache file
  * @param {string} cacheFile - Cache file path
  * @returns {Object[]|null} Parsed cache array or null
@@ -208,25 +237,37 @@ function fetchLicense(licenseKey) {
  * Gets a license from cache or fetches from API
  * @param {string} licenseKey - License key to retrieve
  * @param {string} cacheFile - Cache file path
+ * @param {Object} fileManager - NSFileManager instance
  * @returns {Object|null} License object or null
  */
-function getLicense(licenseKey, cacheFile) {
-    // Read existing cache (array of licenses)
-    let cache = readCache(cacheFile) || [];
-
-    // Check if license is already cached
-    const cachedLicense = cache.find(license => license.key === licenseKey);
-    if (cachedLicense) {
-        return cachedLicense;
+function getLicense(licenseKey, cacheFile, fileManager) {
+    // Check if cache is fresh
+    if (isCacheFresh(cacheFile, fileManager)) {
+        // Read cache and search for specific license
+        const cache = readCache(cacheFile) || [];
+        const cachedLicense = cache.find(license => license.key === licenseKey);
+        if (cachedLicense) {
+            return cachedLicense;
+        }
     }
 
+    // Cache not fresh, expired, or license not found
     // Fetch from API
     const license = fetchLicense(licenseKey);
 
     if (license && license.key) {
-        // Add to cache array
+        // Read existing cache (even if stale, preserve other licenses)
+        let cache = readCache(cacheFile) || [];
+
+        // Remove old version if exists
+        cache = cache.filter(l => l.key !== licenseKey);
+
+        // Add fresh license
         cache.push(license);
+
+        // Write updated cache
         writeCache(cacheFile, cache);
+
         return license;
     }
 
@@ -259,7 +300,7 @@ function run(argv) {
     );
 
     // Get license from cache or API
-    const license = getLicense(licenseKey, CACHE_FILE);
+    const license = getLicense(licenseKey, CACHE_FILE, FILE_MANAGER);
 
     if (!license) {
         return JSON.stringify({
