@@ -4,6 +4,7 @@ Choose a license from the most commonly used licenses on GitHub directly in Alfr
 
 ## Download
 
+- Available on the Alfred Gallery. [Get it here](https://alfred.app/workflows/vanstrouble/choose-a-license/).
 - You can download it directly [from GitHub here](https://github.com/vanstrouble/choosealicense-alfred-workflow/releases/latest).
 
 ## Usage
